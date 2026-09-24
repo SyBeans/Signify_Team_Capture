@@ -9,10 +9,6 @@ __pycache__/
 *.egg-info/
 .cache/
 
-# Data (each member pushes their own folder)
-team_data/*/
-!team_data/.gitkeep
-
 # OS files
 .DS_Store
 Thumbs.db
