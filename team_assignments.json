@@ -1,0 +1,53 @@
+{
+  "capture_settings": {
+    "duration_seconds": 4.0,
+    "fps": 30,
+    "total_frames_captured": 120,
+    "model_frames": 30,
+    "samples_per_sign": 20,
+    "max_hands": 2
+  },
+  "phase_2_fsl_split": {
+    "vincent": {
+      "signs": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
+      "sign_names": [
+        "GOOD MORNING","GOOD AFTERNOON","GOOD EVENING","HELLO","HOW ARE YOU",
+        "IM FINE","NICE TO MEET YOU","THANK YOU","YOURE WELCOME","SEE YOU TOMORROW",
+        "UNDERSTAND","DON'T UNDERSTAND","KNOW","DON'T KNOW","NO","YES","WRONG",
+        "CORRECT","SLOW","FAST","ONE"
+      ]
+    },
+    "jonathan": {
+      "signs": [21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41],
+      "sign_names": [
+        "TWO","THREE","FOUR","FIVE","SIX","SEVEN","EIGHT","NINE","TEN",
+        "JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST",
+        "SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"
+      ]
+    },
+    "mark": {
+      "signs": [42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62],
+      "sign_names": [
+        "MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY",
+        "TODAY","TOMORROW","YESTERDAY","FATHER","MOTHER","SON","DAUGHTER",
+        "GRANDFATHER","GRANDMOTHER","UNCLE","AUNTIE","COUSIN","PARENTS","BOY"
+      ]
+    },
+    "charity": {
+      "signs": [63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83],
+      "sign_names": [
+        "GIRL","MAN","WOMAN","DEAF","HARD OF HEARING","WEELCHAIR PERSON","BLIND",
+        "DEAF BLIND","MARRIED","BLUE","GREEN","RED","BROWN","BLACK","WHITE",
+        "YELLOW","ORANGE","GRAY","PINK","VIOLET","LIGHT"
+      ]
+    },
+    "kent": {
+      "signs": [84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104],
+      "sign_names": [
+        "DARK","BREAD","EGG","FISH","MEAT","CHICKEN","SPAGHETTI","RICE",
+        "LONGANISA","SHRIMP","CRAB","HOT","COLD","JUICE","MILK","COFFEE",
+        "TEA","BEER","WINE","SUGAR","NO SUGAR"
+      ]
+    }
+  }
+}

@@ -1,0 +1,5 @@
+numpy==1.26.4
+opencv-python
+mediapipe==0.10.13
+protobuf==4.25.9
+tqdm
