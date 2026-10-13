@@ -1,0 +1,48 @@
+{
+  "member": "mark",
+  "signs": {
+    "43": {
+      "name": "TUESDAY",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "42": {
+      "name": "MONDAY",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "44": {
+      "name": "WEDNESDAY",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "45": {
+      "name": "THURSDAY",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "46": {
+      "name": "FRIDAY",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "47": {
+      "name": "SATURDAY",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "48": {
+      "name": "SUNDAY",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    }
+  },
+  "last_sign_id": 48
+}
