@@ -1,0 +1,12 @@
+{
+  "member": "jonathan",
+  "date": "2026-10-13T23:20:06.444153",
+  "signs_completed": 7,
+  "signs_in_progress": 0,
+  "total_samples": 241,
+  "feature_shape": [
+    241,
+    30,
+    252
+  ]
+}

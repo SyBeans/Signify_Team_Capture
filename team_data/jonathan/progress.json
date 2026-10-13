@@ -1,0 +1,48 @@
+{
+  "member": "jonathan",
+  "signs": {
+    "21": {
+      "name": "TWO",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "22": {
+      "name": "THREE",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "23": {
+      "name": "FOUR",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "24": {
+      "name": "FIVE",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "25": {
+      "name": "SIX",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "26": {
+      "name": "SEVEN",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "27": {
+      "name": "EIGHT",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    }
+  },
+  "last_sign_id": 27
+}
