@@ -2,5 +2,13 @@
   {
     "id": 0,
     "name": "GOOD MORNING"
+  },
+  {
+    "id": 1,
+    "name": "GOOD AFTERNOON"
+  },
+  {
+    "id": 2,
+    "name": "GOOD EVENING"
   }
 ]

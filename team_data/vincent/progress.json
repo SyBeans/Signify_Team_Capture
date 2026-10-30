@@ -6,7 +6,19 @@
       "samples": 40,
       "total_samples": 40,
       "completed": true
+    },
+    "1": {
+      "name": "GOOD AFTERNOON",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "2": {
+      "name": "GOOD EVENING",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
     }
   },
-  "last_sign_id": 0
+  "last_sign_id": 2
 }
