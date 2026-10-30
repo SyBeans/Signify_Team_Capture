@@ -1,5 +1,12 @@
 {
   "member": "vincent",
-  "signs": {},
-  "last_sign_id": null
+  "signs": {
+    "0": {
+      "name": "GOOD MORNING",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    }
+  },
+  "last_sign_id": 0
 }

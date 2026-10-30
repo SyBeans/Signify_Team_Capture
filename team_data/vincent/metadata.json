@@ -1,11 +1,11 @@
 {
   "member": "vincent",
-  "date": "2026-09-24T13:58:00.348289",
-  "signs_completed": 0,
-  "signs_in_progress": 1,
-  "total_samples": 1,
+  "date": "2026-10-30T11:47:27.357933",
+  "signs_completed": 1,
+  "signs_in_progress": 0,
+  "total_samples": 40,
   "feature_shape": [
-    1,
+    40,
     30,
     252
   ]
