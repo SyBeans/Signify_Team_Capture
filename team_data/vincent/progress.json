@@ -36,7 +36,19 @@
       "samples": 40,
       "total_samples": 40,
       "completed": true
+    },
+    "6": {
+      "name": "NICE TO MEET YOU",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "7": {
+      "name": "THANK YOU",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
     }
   },
-  "last_sign_id": 5
+  "last_sign_id": 7
 }
