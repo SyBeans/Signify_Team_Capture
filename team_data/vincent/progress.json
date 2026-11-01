@@ -75,10 +75,16 @@
     },
     "12": {
       "name": "KNOW",
-      "samples": 17,
+      "samples": 41,
       "total_samples": 40,
-      "completed": false
+      "completed": true
+    },
+    "13": {
+      "name": "DON'T KNOW",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
     }
   },
-  "last_sign_id": 12
+  "last_sign_id": 13
 }
