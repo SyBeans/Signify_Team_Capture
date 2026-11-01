@@ -54,5 +54,17 @@
   {
     "id": 13,
     "name": "DON'T KNOW"
+  },
+  {
+    "id": 14,
+    "name": "NO"
+  },
+  {
+    "id": 15,
+    "name": "YES"
+  },
+  {
+    "id": 16,
+    "name": "WRONG"
   }
 ]
