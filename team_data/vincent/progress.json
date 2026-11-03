@@ -111,9 +111,9 @@
     },
     "18": {
       "name": "SLOW",
-      "samples": 10,
+      "samples": 45,
       "total_samples": 40,
-      "completed": false
+      "completed": true
     }
   },
   "last_sign_id": 18
