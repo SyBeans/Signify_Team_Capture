@@ -114,7 +114,19 @@
       "samples": 45,
       "total_samples": 40,
       "completed": true
+    },
+    "19": {
+      "name": "FAST",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "20": {
+      "name": "ONE",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
     }
   },
-  "last_sign_id": 18
+  "last_sign_id": 20
 }

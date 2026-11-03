@@ -74,5 +74,13 @@
   {
     "id": 18,
     "name": "SLOW"
+  },
+  {
+    "id": 19,
+    "name": "FAST"
+  },
+  {
+    "id": 20,
+    "name": "ONE"
   }
 ]
