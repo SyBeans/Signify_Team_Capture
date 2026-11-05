@@ -1,11 +1,11 @@
 {
   "member": "mark",
-  "date": "2026-10-13T23:10:47.307363",
-  "signs_completed": 7,
+  "date": "2026-11-05T22:38:03.449881",
+  "signs_completed": 21,
   "signs_in_progress": 0,
-  "total_samples": 241,
+  "total_samples": 801,
   "feature_shape": [
-    241,
+    801,
     30,
     252
   ]

@@ -26,5 +26,61 @@
   {
     "id": 48,
     "name": "SUNDAY"
+  },
+  {
+    "id": 49,
+    "name": "TODAY"
+  },
+  {
+    "id": 50,
+    "name": "TOMORROW"
+  },
+  {
+    "id": 51,
+    "name": "YESTERDAY"
+  },
+  {
+    "id": 52,
+    "name": "FATHER"
+  },
+  {
+    "id": 53,
+    "name": "MOTHER"
+  },
+  {
+    "id": 54,
+    "name": "SON"
+  },
+  {
+    "id": 55,
+    "name": "DAUGHTER"
+  },
+  {
+    "id": 56,
+    "name": "GRANDFATHER"
+  },
+  {
+    "id": 57,
+    "name": "GRANDMOTHER"
+  },
+  {
+    "id": 58,
+    "name": "UNCLE"
+  },
+  {
+    "id": 59,
+    "name": "AUNTIE"
+  },
+  {
+    "id": 60,
+    "name": "COUSIN"
+  },
+  {
+    "id": 61,
+    "name": "PARENTS"
+  },
+  {
+    "id": 62,
+    "name": "BOY"
   }
 ]
