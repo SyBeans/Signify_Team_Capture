@@ -1,11 +1,6 @@
 """
-capture_training_data.py (FINAL - with fixed Continue)
+capture_training_data.py (FINAL - with FPS Counter & Duplicate Hand Filter)
 Per-sample confirm + sample count menu + FULL resume support.
-
-FIXED:
-- Continue remembers previous sample count (no menu)
-- Saves after every sample
-- Includes in-progress signs
 """
 
 import cv2
@@ -15,6 +10,7 @@ import os
 import json
 import argparse
 from datetime import datetime
+import time  # ADDED FOR FPS CALCULATION
 
 # ============================================
 # ARGUMENTS
@@ -198,6 +194,12 @@ def show_sample_menu(sign_name, sample_num, total_samples):
 # CAPTURE ONE SAMPLE
 # ============================================
 def capture_one_sample(cap, sign_name, sample_num, total_samples):
+    # FPS Tracking Variables for Preview
+    fps = 0.0
+    fps_frames = 0
+    fps_last_time = time.time()
+
+    # --- PREVIEW LOOP ---
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -208,8 +210,19 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         preview = hands.process(frame_rgb)
 
+        # Filter out hallucinated hands
+        valid_hands = []
         if preview.multi_hand_landmarks:
-            for hl in preview.multi_hand_landmarks:
+            valid_hands.append(preview.multi_hand_landmarks[0])
+            if len(preview.multi_hand_landmarks) >= 2:
+                wrist1 = preview.multi_hand_landmarks[0].landmark[0]
+                wrist2 = preview.multi_hand_landmarks[1].landmark[0]
+                dist = np.sqrt((wrist1.x - wrist2.x)**2 + (wrist1.y - wrist2.y)**2)
+                if dist > 0.12: 
+                    valid_hands.append(preview.multi_hand_landmarks[1])
+
+        if valid_hands:
+            for hl in valid_hands:
                 mp_draw.draw_landmarks(
                     frame, hl, mp_hands.HAND_CONNECTIONS,
                     mp_draw.DrawingSpec(color=(0, 255, 0), thickness=2, circle_radius=2),
@@ -222,9 +235,17 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
                     else:
                         cv2.circle(frame, (cx, cy), 4, (255, 0, 255), -1)
 
-        if preview.multi_hand_landmarks:
+        # Calculate FPS
+        fps_frames += 1
+        now = time.time()
+        if now - fps_last_time >= 0.5:
+            fps = fps_frames / (now - fps_last_time)
+            fps_frames = 0
+            fps_last_time = now
+
+        if valid_hands:
             status_color = (0, 255, 0)
-            status_text = f"🟢 HAND ({len(preview.multi_hand_landmarks)})"
+            status_text = f"🟢 HAND ({len(valid_hands)})"
         else:
             status_color = (0, 0, 255)
             status_text = "🔴 SHOW HAND!"
@@ -241,6 +262,10 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
         cv2.putText(frame, "SPACE = record | ESC = skip", (20, 145),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200, 200, 200), 1)
+        
+        # Draw FPS (Top Right)
+        cv2.putText(frame, f"FPS: {fps:.1f}", (w - 120, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
         cv2.imshow("Signify Capture", frame)
         key = cv2.waitKey(1) & 0xFF
@@ -249,6 +274,7 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         if key == 27:
             return None
 
+    # Countdown
     for i in range(3, 0, -1):
         ret, frame = cap.read()
         if not ret:
@@ -259,8 +285,13 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         cv2.imshow("Signify Capture", frame)
         cv2.waitKey(1000)
 
+    # --- RECORDING LOOP ---
     frames_with_hands = []
     total_captured = 0
+    
+    # Reset FPS for recording
+    fps_frames = 0
+    fps_last_time = time.time()
 
     while total_captured < TOTAL_FRAMES:
         ret, frame = cap.read()
@@ -272,11 +303,19 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = hands.process(frame_rgb)
 
-        hand_detected_now = False
-
+        # Filter again during recording
+        valid_hands = []
         if results.multi_hand_landmarks:
-            hand_detected_now = True
-            for hl in results.multi_hand_landmarks:
+            valid_hands.append(results.multi_hand_landmarks[0])
+            if len(results.multi_hand_landmarks) >= 2:
+                wrist1 = results.multi_hand_landmarks[0].landmark[0]
+                wrist2 = results.multi_hand_landmarks[1].landmark[0]
+                dist = np.sqrt((wrist1.x - wrist2.x)**2 + (wrist1.y - wrist2.y)**2)
+                if dist > 0.12:
+                    valid_hands.append(results.multi_hand_landmarks[1])
+
+        if valid_hands:
+            for hl in valid_hands:
                 mp_draw.draw_landmarks(
                     frame, hl, mp_hands.HAND_CONNECTIONS,
                     mp_draw.DrawingSpec(color=(0, 255, 0), thickness=2, circle_radius=2),
@@ -290,17 +329,27 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
                         cv2.circle(frame, (cx, cy), 4, (255, 0, 255), -1)
 
             hand1 = []
-            for lm in results.multi_hand_landmarks[0].landmark:
+            for lm in valid_hands[0].landmark:
                 hand1.extend([lm.x, lm.y, lm.z])
-            if len(results.multi_hand_landmarks) >= 2:
+                
+            if len(valid_hands) >= 2:
                 hand2 = []
-                for lm in results.multi_hand_landmarks[1].landmark:
+                for lm in valid_hands[1].landmark:
                     hand2.extend([lm.x, lm.y, lm.z])
             else:
                 hand2 = [0.0] * HAND_FEATURES
+                
             frames_with_hands.append(hand1 + hand2)
 
         total_captured += 1
+
+        # Calculate FPS
+        fps_frames += 1
+        now = time.time()
+        if now - fps_last_time >= 0.5:
+            fps = fps_frames / (now - fps_last_time)
+            fps_frames = 0
+            fps_last_time = now
 
         overlay = frame.copy()
         cv2.rectangle(overlay, (0, 0), (w, 180), (0, 0, 0), -1)
@@ -311,9 +360,9 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         cv2.putText(frame, f"Sign: {sign_name}", (20, 75),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
-        if hand_detected_now:
+        if valid_hands:
             status_color = (0, 255, 0)
-            status_text = f"🟢 HAND ({len(results.multi_hand_landmarks)})"
+            status_text = f"🟢 HAND ({len(valid_hands)})"
         else:
             status_color = (0, 0, 255)
             status_text = "🔴 NO HAND!"
@@ -322,6 +371,10 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.65, status_color, 2)
         cv2.putText(frame, f"Hands: {len(frames_with_hands)}", (20, 145),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
+        
+        # Draw FPS (Top Right)
+        cv2.putText(frame, f"FPS: {fps:.1f}", (w - 120, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
         progress = total_captured / TOTAL_FRAMES
         bar_w = int(progress * (w - 40))
@@ -435,7 +488,6 @@ def main():
                 key = cv2.waitKey(0) & 0xFF
 
                 if key == ord('c') or key == ord('C'):
-                    # ✅ Use STORED total_samples — no menu!
                     total_samples = stored_total
                     print(f"   ✅ Continuing with {total_samples} total samples")
                     filtered_X = [x for x, y in zip(X_all, y_all) if y != sign_id]
