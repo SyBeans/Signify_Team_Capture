@@ -1,0 +1,86 @@
+[
+  {
+    "id": 84,
+    "name": "DARK"
+  },
+  {
+    "id": 85,
+    "name": "BREAD"
+  },
+  {
+    "id": 86,
+    "name": "EGG"
+  },
+  {
+    "id": 87,
+    "name": "FISH"
+  },
+  {
+    "id": 88,
+    "name": "MEAT"
+  },
+  {
+    "id": 89,
+    "name": "CHICKEN"
+  },
+  {
+    "id": 90,
+    "name": "SPAGHETTI"
+  },
+  {
+    "id": 91,
+    "name": "RICE"
+  },
+  {
+    "id": 92,
+    "name": "LONGANISA"
+  },
+  {
+    "id": 93,
+    "name": "SHRIMP"
+  },
+  {
+    "id": 94,
+    "name": "CRAB"
+  },
+  {
+    "id": 95,
+    "name": "HOT"
+  },
+  {
+    "id": 96,
+    "name": "COLD"
+  },
+  {
+    "id": 97,
+    "name": "JUICE"
+  },
+  {
+    "id": 98,
+    "name": "MILK"
+  },
+  {
+    "id": 99,
+    "name": "COFFEE"
+  },
+  {
+    "id": 100,
+    "name": "TEA"
+  },
+  {
+    "id": 101,
+    "name": "BEER"
+  },
+  {
+    "id": 102,
+    "name": "WINE"
+  },
+  {
+    "id": 103,
+    "name": "SUGAR"
+  },
+  {
+    "id": 104,
+    "name": "NO SUGAR"
+  }
+]
