@@ -1,0 +1,86 @@
+[
+  {
+    "id": 63,
+    "name": "GIRL"
+  },
+  {
+    "id": 64,
+    "name": "MAN"
+  },
+  {
+    "id": 65,
+    "name": "WOMAN"
+  },
+  {
+    "id": 66,
+    "name": "DEAF"
+  },
+  {
+    "id": 67,
+    "name": "HARD OF HEARING"
+  },
+  {
+    "id": 68,
+    "name": "WEELCHAIR PERSON"
+  },
+  {
+    "id": 69,
+    "name": "BLIND"
+  },
+  {
+    "id": 70,
+    "name": "DEAF BLIND"
+  },
+  {
+    "id": 71,
+    "name": "MARRIED"
+  },
+  {
+    "id": 72,
+    "name": "BLUE"
+  },
+  {
+    "id": 73,
+    "name": "GREEN"
+  },
+  {
+    "id": 74,
+    "name": "RED"
+  },
+  {
+    "id": 75,
+    "name": "BROWN"
+  },
+  {
+    "id": 76,
+    "name": "BLACK"
+  },
+  {
+    "id": 77,
+    "name": "WHITE"
+  },
+  {
+    "id": 78,
+    "name": "YELLOW"
+  },
+  {
+    "id": 79,
+    "name": "ORANGE"
+  },
+  {
+    "id": 80,
+    "name": "GRAY"
+  },
+  {
+    "id": 81,
+    "name": "PINK"
+  },
+  {
+    "id": 82,
+    "name": "VIOLET"
+  },
+  {
+    "id": 83,
+    "name": "LIGHT"
+  }
+]
