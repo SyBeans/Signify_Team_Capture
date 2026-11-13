@@ -75,8 +75,8 @@
     },
     "12": {
       "name": "KNOW",
-      "samples": 41,
-      "total_samples": 40,
+      "samples": 20,
+      "total_samples": 20,
       "completed": true
     },
     "13": {
@@ -93,8 +93,8 @@
     },
     "15": {
       "name": "YES",
-      "samples": 40,
-      "total_samples": 40,
+      "samples": 20,
+      "total_samples": 20,
       "completed": true
     },
     "16": {
@@ -111,8 +111,8 @@
     },
     "18": {
       "name": "SLOW",
-      "samples": 45,
-      "total_samples": 40,
+      "samples": 20,
+      "total_samples": 20,
       "completed": true
     },
     "19": {
@@ -128,5 +128,5 @@
       "completed": true
     }
   },
-  "last_sign_id": 20
+  "last_sign_id": 18
 }
