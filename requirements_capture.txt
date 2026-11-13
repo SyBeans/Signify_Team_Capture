@@ -3,3 +3,4 @@ opencv-python
 mediapipe==0.10.13
 protobuf==4.25.9
 tqdm
+scikit-learn
