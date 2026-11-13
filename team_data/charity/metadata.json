@@ -1,11 +1,11 @@
 {
   "member": "charity",
-  "date": "2026-11-11T13:24:52.401909",
+  "date": "2026-11-12T14:28:40.511717",
   "signs_completed": 21,
   "signs_in_progress": 0,
-  "total_samples": 787,
+  "total_samples": 947,
   "feature_shape": [
-    787,
+    947,
     30,
     252
   ]
