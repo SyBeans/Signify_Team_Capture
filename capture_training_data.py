@@ -1,5 +1,5 @@
 """
-capture_training_data.py (FINAL - with Duplicate Hand Filter)
+capture_training_data.py (FINAL - with FPS Counter & Duplicate Hand Filter)
 Per-sample confirm + sample count menu + FULL resume support.
 """
 
@@ -10,6 +10,7 @@ import os
 import json
 import argparse
 from datetime import datetime
+import time  # ADDED FOR FPS CALCULATION
 
 # ============================================
 # ARGUMENTS
@@ -193,6 +194,12 @@ def show_sample_menu(sign_name, sample_num, total_samples):
 # CAPTURE ONE SAMPLE
 # ============================================
 def capture_one_sample(cap, sign_name, sample_num, total_samples):
+    # FPS Tracking Variables for Preview
+    fps = 0.0
+    fps_frames = 0
+    fps_last_time = time.time()
+
+    # --- PREVIEW LOOP ---
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -211,7 +218,6 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
                 wrist1 = preview.multi_hand_landmarks[0].landmark[0]
                 wrist2 = preview.multi_hand_landmarks[1].landmark[0]
                 dist = np.sqrt((wrist1.x - wrist2.x)**2 + (wrist1.y - wrist2.y)**2)
-                # If wrists are far apart, it's a real 2nd hand
                 if dist > 0.12: 
                     valid_hands.append(preview.multi_hand_landmarks[1])
 
@@ -228,6 +234,14 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
                         cv2.circle(frame, (cx, cy), 8, (0, 255, 255), -1)
                     else:
                         cv2.circle(frame, (cx, cy), 4, (255, 0, 255), -1)
+
+        # Calculate FPS
+        fps_frames += 1
+        now = time.time()
+        if now - fps_last_time >= 0.5:
+            fps = fps_frames / (now - fps_last_time)
+            fps_frames = 0
+            fps_last_time = now
 
         if valid_hands:
             status_color = (0, 255, 0)
@@ -248,6 +262,10 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
         cv2.putText(frame, "SPACE = record | ESC = skip", (20, 145),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200, 200, 200), 1)
+        
+        # Draw FPS (Top Right)
+        cv2.putText(frame, f"FPS: {fps:.1f}", (w - 120, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
         cv2.imshow("Signify Capture", frame)
         key = cv2.waitKey(1) & 0xFF
@@ -256,6 +274,7 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         if key == 27:
             return None
 
+    # Countdown
     for i in range(3, 0, -1):
         ret, frame = cap.read()
         if not ret:
@@ -266,8 +285,13 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         cv2.imshow("Signify Capture", frame)
         cv2.waitKey(1000)
 
+    # --- RECORDING LOOP ---
     frames_with_hands = []
     total_captured = 0
+    
+    # Reset FPS for recording
+    fps_frames = 0
+    fps_last_time = time.time()
 
     while total_captured < TOTAL_FRAMES:
         ret, frame = cap.read()
@@ -319,6 +343,14 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
 
         total_captured += 1
 
+        # Calculate FPS
+        fps_frames += 1
+        now = time.time()
+        if now - fps_last_time >= 0.5:
+            fps = fps_frames / (now - fps_last_time)
+            fps_frames = 0
+            fps_last_time = now
+
         overlay = frame.copy()
         cv2.rectangle(overlay, (0, 0), (w, 180), (0, 0, 0), -1)
         frame = cv2.addWeighted(overlay, 0.6, frame, 0.4, 0)
@@ -339,6 +371,10 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.65, status_color, 2)
         cv2.putText(frame, f"Hands: {len(frames_with_hands)}", (20, 145),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
+        
+        # Draw FPS (Top Right)
+        cv2.putText(frame, f"FPS: {fps:.1f}", (w - 120, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
         progress = total_captured / TOTAL_FRAMES
         bar_w = int(progress * (w - 40))
