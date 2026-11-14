@@ -1,0 +1,132 @@
+{
+  "member": "charity",
+  "signs": {
+    "63": {
+      "name": "GIRL",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "64": {
+      "name": "MAN",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "65": {
+      "name": "WOMAN",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "66": {
+      "name": "DEAF",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "67": {
+      "name": "HARD OF HEARING",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "68": {
+      "name": "WEELCHAIR PERSON",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "69": {
+      "name": "BLIND",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "70": {
+      "name": "DEAF BLIND",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "71": {
+      "name": "MARRIED",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "72": {
+      "name": "BLUE",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "73": {
+      "name": "GREEN",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "74": {
+      "name": "RED",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "75": {
+      "name": "BROWN",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "76": {
+      "name": "BLACK",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "77": {
+      "name": "WHITE",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "78": {
+      "name": "YELLOW",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "79": {
+      "name": "ORANGE",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "80": {
+      "name": "GRAY",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "81": {
+      "name": "PINK",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "82": {
+      "name": "VIOLET",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    },
+    "83": {
+      "name": "LIGHT",
+      "samples": 40,
+      "total_samples": 40,
+      "completed": true
+    }
+  },
+  "last_sign_id": 79
+}
