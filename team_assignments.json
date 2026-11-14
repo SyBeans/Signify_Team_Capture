@@ -36,7 +36,7 @@
     "charity": {
       "signs": [63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83],
       "sign_names": [
-        "GIRL","MAN","WOMAN","DEAF","HARD OF HEARING","WEELCHAIR PERSON","BLIND",
+        "GIRL","MAN","WOMAN","DEAF","HARD OF HEARING","WHEELCHAIR PERSON","BLIND",
         "DEAF BLIND","MARRIED","BLUE","GREEN","RED","BROWN","BLACK","WHITE",
         "YELLOW","ORANGE","GRAY","PINK","VIOLET","LIGHT"
       ]
