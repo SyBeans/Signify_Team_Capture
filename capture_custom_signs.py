@@ -1,6 +1,6 @@
 """
 capture_custom_signs.py (Auto-Resume + Phrase-Friendly Edition)
-- Sample counts: 10, 20, 40 (60 removed)
+- Sample counts: 15, 20, 40 (60 removed)
 - Type sign name in OpenCV UI. Spaces auto-convert to underscores.
 - Example: "I NEED DOCTOR" → saved as "I_NEED_DOCTOR"
 - 100% OpenCV UI (no terminal inputs)
@@ -142,7 +142,7 @@ def get_sign_name_ui():
                 current_text += chr(key)
 
 # ============================================
-# SAMPLE COUNT MENU (10/20/40)
+# SAMPLE COUNT MENU (15/20/40)
 # ============================================
 def choose_sample_count(sign_name):
     h, w = 480, 640
@@ -151,9 +151,9 @@ def choose_sample_count(sign_name):
         cv2.putText(frame, f"SIGN: {sign_name}", (60, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
         cv2.putText(frame, "How many samples?", (60, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
 
-        # 3 buttons now (10 / 20 / 40)
+        # 3 buttons now (15 / 20 / 40)
         cv2.rectangle(frame, (60, 200), (240, 270), (0, 150, 0), -1)
-        cv2.putText(frame, "1 = 10 samples", (80, 245), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        cv2.putText(frame, "1 = 15 samples", (80, 245), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
         cv2.rectangle(frame, (280, 200), (460, 270), (0, 150, 200), -1)
         cv2.putText(frame, "2 = 20 samples", (300, 245), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
@@ -166,7 +166,7 @@ def choose_sample_count(sign_name):
 
         cv2.imshow("Signify Custom Capture", frame)
         key = cv2.waitKey(0) & 0xFF
-        if key == ord('1'): return 10
+        if key == ord('1'): return 15
         elif key == ord('2'): return 20
         elif key == ord('3'): return 40
         elif key == 27: return None
@@ -393,7 +393,7 @@ def main():
     print(f"🎬 SIGNIFY CUSTOM CAPTURE — {MEMBER_NAME.upper()}")
     print("="*60)
     print("UI is handled inside the camera window.")
-    print(f"Sample counts: 10, 20, or 40")
+    print(f"Sample counts: 15, 20, or 40")
     print(f"Phrase input: type with SPACES (e.g. I NEED DOCTOR)")
     print("="*60)
 

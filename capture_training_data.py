@@ -104,7 +104,7 @@ hands = mp_hands.Hands(
 
 
 # ============================================
-# SAMPLE COUNT MENU (20/40/60)
+# SAMPLE COUNT MENU (15/40)  ← 60 removed, 20 → 15
 # ============================================
 def choose_sample_count(sign_name):
     h, w = 480, 640
@@ -117,31 +117,28 @@ def choose_sample_count(sign_name):
         cv2.putText(frame, "How many samples?",
                     (60, 140), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
 
+        # 15 samples (was 20)
         cv2.rectangle(frame, (60, 200), (240, 270), (0, 150, 0), -1)
-        cv2.putText(frame, "1 = 20 samples",
+        cv2.putText(frame, "1 = 15 samples",
                     (80, 245), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
+        # 40 samples (kept)
         cv2.rectangle(frame, (280, 200), (460, 270), (0, 150, 200), -1)
         cv2.putText(frame, "2 = 40 samples",
                     (300, 245), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
-        cv2.rectangle(frame, (60, 310), (240, 380), (150, 100, 0), -1)
-        cv2.putText(frame, "3 = 60 samples",
-                    (80, 355), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-
-        cv2.rectangle(frame, (280, 310), (460, 380), (100, 100, 100), -1)
+        # Quit — full-width bottom row (60 button removed)
+        cv2.rectangle(frame, (60, 310), (460, 380), (100, 100, 100), -1)
         cv2.putText(frame, "Q = Quit",
-                    (320, 355), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                    (220, 355), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
         cv2.imshow("Signify Capture", frame)
         key = cv2.waitKey(0) & 0xFF
 
         if key == ord('1'):
-            return 20
+            return 15
         elif key == ord('2'):
             return 40
-        elif key == ord('3'):
-            return 60
         elif key == ord('q') or key == ord('Q'):
             return None
 
@@ -608,7 +605,7 @@ def main():
             }, f, indent=2)
 
         print(f"\n✅ Saved {len(X)} samples")
-        print(f"✅ Signs tracked: {len(labels_captured)}")
+        print(f"\u2705 Signs tracked: {len(labels_captured)}")
 
     cap.release()
     cv2.destroyAllWindows()
