@@ -1,6 +1,7 @@
 """
 capture_training_data.py (FINAL - with FPS Counter & Duplicate Hand Filter)
 Per-sample confirm + sample count menu + FULL resume support.
+FIXED: "Continue" no longer wipes existing data.
 """
 
 import cv2
@@ -10,7 +11,7 @@ import os
 import json
 import argparse
 from datetime import datetime
-import time  # ADDED FOR FPS CALCULATION
+import time
 
 # ============================================
 # ARGUMENTS
@@ -490,10 +491,7 @@ def main():
                 if key == ord('c') or key == ord('C'):
                     total_samples = stored_total
                     print(f"   ✅ Continuing with {total_samples} total samples")
-                    filtered_X = [x for x, y in zip(X_all, y_all) if y != sign_id]
-                    filtered_y = [y for y in y_all if y != sign_id]
-                    X_all = filtered_X
-                    y_all = filtered_y
+                    # ✅ BUG FIX: Removed the 4 lines that were wiping X_all and y_all
                     start_from = existing_count
 
                 elif key == ord('r') or key == ord('R'):
