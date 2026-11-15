@@ -1,8 +1,9 @@
 """
-capture_custom_signs.py (Auto-Resume Edition)
-- Auto-detects unfinished signs on startup.
-- Lets you resume them via a menu, or type a brand new sign.
-- 100% OpenCV UI (no terminal inputs).
+capture_custom_signs.py (Auto-Resume + Phrase-Friendly Edition)
+- Sample counts: 10, 20, 40 (60 removed)
+- Type sign name in OpenCV UI. Spaces auto-convert to underscores.
+- Example: "I NEED DOCTOR" → saved as "I_NEED_DOCTOR"
+- 100% OpenCV UI (no terminal inputs)
 """
 import cv2
 import numpy as np
@@ -25,6 +26,7 @@ TOTAL_FRAMES = 120
 MODEL_FRAMES = 30
 MAX_HANDS = 2
 HAND_FEATURES = 63
+MAX_SIGN_NAME_LEN = 30  # 🆕 increased for longer phrases
 
 # ============================================
 # MEDIAPIPE
@@ -42,27 +44,23 @@ hands = mp_hands.Hands(
 def get_unfinished_signs():
     base_dir = f"custom_data/{MEMBER_NAME}"
     unfinished = []
-    
     if not os.path.exists(base_dir):
         return unfinished
 
     for sign_name in os.listdir(base_dir):
         sign_dir = os.path.join(base_dir, sign_name)
         if not os.path.isdir(sign_dir): continue
-        
+
         progress_path = os.path.join(sign_dir, "progress.json")
         x_path = os.path.join(sign_dir, "X.npy")
-        
+
         if os.path.exists(progress_path) and os.path.exists(x_path):
             with open(progress_path) as f:
                 prog = json.load(f)
-            
-            # Check if it's NOT completed
             if not prog.get("completed", False):
                 current_count = len(np.load(x_path))
                 total = prog.get("total_samples", 20)
                 unfinished.append((sign_name, current_count, total))
-                
     return unfinished
 
 # ============================================
@@ -70,32 +68,30 @@ def get_unfinished_signs():
 # ============================================
 def show_startup_menu(unfinished):
     h, w = 480, 640
-    
     while True:
         frame = np.zeros((h, w, 3), dtype=np.uint8)
         cv2.putText(frame, "SIGNIFY CAPTURE MENU", (60, 60), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 255), 2)
-        
+
         y_offset = 130
         if unfinished:
             cv2.putText(frame, "Unfinished Signs:", (60, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
             for i, (name, curr, total) in enumerate(unfinished):
-                if i >= 4: break # Only show max 4 to fit screen
+                if i >= 4: break
                 cv2.rectangle(frame, (60, y_offset), (580, y_offset + 50), (0, 100, 150), -1)
-                cv2.putText(frame, f"[{i+1}] {name} ({curr}/{total})", (80, y_offset + 32), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                cv2.putText(frame, f"[{i+1}] {name} ({curr}/{total})", (80, y_offset + 32), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2)
                 y_offset += 60
         else:
             cv2.putText(frame, "No unfinished signs found.", (60, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (150, 150, 150), 2)
 
-        # "Type NEW sign" button
         cv2.rectangle(frame, (60, 380), (580, 440), (0, 180, 0), -1)
         cv2.putText(frame, "[N] Type a NEW sign", (200, 418), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-        
+
         cv2.putText(frame, "[ESC] Quit", (60, 470), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (100, 100, 100), 2)
 
         cv2.imshow("Signify Custom Capture", frame)
         key = cv2.waitKey(0) & 0xFF
-        
-        if key == 27: # ESC
+
+        if key == 27:
             return "quit", None
         elif key == ord('n') or key == ord('N'):
             return "new", None
@@ -105,63 +101,74 @@ def show_startup_menu(unfinished):
                 return "resume", unfinished[idx][0]
 
 # ============================================
-# TEXT INPUT UI
+# TEXT INPUT UI (Phrase-Friendly)
 # ============================================
 def get_sign_name_ui():
     h, w = 480, 640
     current_text = ""
-    
+
     while True:
         frame = np.zeros((h, w, 3), dtype=np.uint8)
-        cv2.putText(frame, "ENTER NEW SIGN NAME", (60, 150), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 255), 3)
-        cv2.putText(frame, "Type using keyboard, press ENTER to confirm.", (60, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 2)
-        
-        cv2.rectangle(frame, (60, 250), (580, 320), (255, 255, 255), 2)
-        cv2.putText(frame, current_text + "_", (80, 295), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 3)
-        
-        cv2.putText(frame, "ESC = Back to Menu", (60, 400), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (100, 100, 100), 2)
-        
+        cv2.putText(frame, "ENTER SIGN NAME", (60, 80), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 255), 3)
+        cv2.putText(frame, "Type with SPACES (e.g. I NEED DOCTOR)", (40, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200, 200, 200), 1)
+        cv2.putText(frame, "Spaces auto-convert to underscores", (40, 155), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200, 200, 200), 1)
+
+        # Text input box
+        cv2.rectangle(frame, (60, 200), (580, 270), (255, 255, 255), 2)
+        cv2.putText(frame, current_text + "_", (80, 245), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+
+        # 🆕 Live preview of what will be saved
+        if len(current_text) > 0:
+            preview = current_text.upper().replace(" ", "_")
+            cv2.putText(frame, f"Will save as: {preview}", (60, 320), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 200, 255), 1)
+
+        # Character count
+        cv2.putText(frame, f"{len(current_text)}/{MAX_SIGN_NAME_LEN} chars", (60, 360), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150, 150, 150), 1)
+
+        cv2.putText(frame, "ENTER = Confirm   BACKSPACE = Delete   ESC = Back", (40, 440), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150, 150, 150), 1)
+
         cv2.imshow("Signify Custom Capture", frame)
         key = cv2.waitKey(1) & 0xFF
-        
-        if key == 27: 
+
+        if key == 27:
             return None
-        elif key == 13: 
+        elif key == 13:
             if len(current_text) > 0:
                 return current_text.upper().replace(" ", "_")
-        elif key == 8: 
+        elif key == 8:
             current_text = current_text[:-1]
-        elif 32 <= key <= 126: 
-            if len(current_text) < 20: 
+        elif 32 <= key <= 126:
+            if len(current_text) < MAX_SIGN_NAME_LEN:
                 current_text += chr(key)
 
 # ============================================
-# SAMPLE COUNT MENU (20/40/60)
+# SAMPLE COUNT MENU (10/20/40)
 # ============================================
 def choose_sample_count(sign_name):
     h, w = 480, 640
     while True:
         frame = np.zeros((h, w, 3), dtype=np.uint8)
-        cv2.putText(frame, f"SIGN: {sign_name}", (60, 80), cv2.FONT_HERSHEY_SIMPLEX, 1.1, (0, 255, 255), 2)
-        cv2.putText(frame, "How many samples?", (60, 140), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+        cv2.putText(frame, f"SIGN: {sign_name}", (60, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+        cv2.putText(frame, "How many samples?", (60, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
 
+        # 3 buttons now (10 / 20 / 40)
         cv2.rectangle(frame, (60, 200), (240, 270), (0, 150, 0), -1)
-        cv2.putText(frame, "1 = 20 samples", (80, 245), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        cv2.putText(frame, "1 = 10 samples", (80, 245), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
         cv2.rectangle(frame, (280, 200), (460, 270), (0, 150, 200), -1)
-        cv2.putText(frame, "2 = 40 samples", (300, 245), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        cv2.putText(frame, "2 = 20 samples", (300, 245), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
         cv2.rectangle(frame, (60, 310), (240, 380), (150, 100, 0), -1)
-        cv2.putText(frame, "3 = 60 samples", (80, 355), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        cv2.putText(frame, "3 = 40 samples", (80, 355), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
         cv2.rectangle(frame, (280, 310), (460, 380), (100, 100, 100), -1)
         cv2.putText(frame, "ESC = Back", (320, 355), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
         cv2.imshow("Signify Custom Capture", frame)
         key = cv2.waitKey(0) & 0xFF
-        if key == ord('1'): return 20
-        elif key == ord('2'): return 40
-        elif key == ord('3'): return 60
+        if key == ord('1'): return 10
+        elif key == ord('2'): return 20
+        elif key == ord('3'): return 40
         elif key == 27: return None
 
 # ============================================
@@ -171,7 +178,7 @@ def show_resume_menu(sign_name, existing_count, stored_total):
     h, w = 480, 640
     while True:
         frame = np.zeros((h, w, 3), dtype=np.uint8)
-        cv2.putText(frame, f"SIGN: {sign_name}", (40, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+        cv2.putText(frame, f"SIGN: {sign_name}", (40, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.85, (0, 255, 255), 2)
         cv2.putText(frame, f"Already: {existing_count}/{stored_total} samples", (40, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         cv2.putText(frame, "Resume what?", (40, 160), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (200, 200, 200), 2)
 
@@ -198,7 +205,9 @@ def show_sample_menu(sign_name, sample_num, total_samples):
     h, w = 480, 640
     while True:
         frame = np.zeros((h, w, 3), dtype=np.uint8)
-        cv2.putText(frame, f"SIGN: {sign_name}", (40, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+        # Truncate sign name for display if too long
+        display_name = sign_name if len(sign_name) <= 28 else sign_name[:25] + "..."
+        cv2.putText(frame, f"SIGN: {display_name}", (40, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
         cv2.putText(frame, f"Sample: {sample_num}/{total_samples}", (40, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         cv2.putText(frame, "Accept this sample?", (40, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (200, 200, 200), 2)
 
@@ -223,7 +232,7 @@ def show_sample_menu(sign_name, sample_num, total_samples):
         elif key in [ord('q'), ord('Q')]: return "quit"
 
 # ============================================
-# CAPTURE ONE SAMPLE (With FPS & Hand Status)
+# CAPTURE ONE SAMPLE
 # ============================================
 def capture_one_sample(cap, sign_name, sample_num, total_samples):
     fps = 0.0
@@ -273,7 +282,8 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         cv2.rectangle(overlay, (0, 0), (w, 180), (0, 0, 0), -1)
         frame = cv2.addWeighted(overlay, 0.6, frame, 0.4, 0)
 
-        cv2.putText(frame, f"Sign: {sign_name}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+        display_name = sign_name if len(sign_name) <= 35 else sign_name[:32] + "..."
+        cv2.putText(frame, f"Sign: {display_name}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
         cv2.putText(frame, f"Sample: {sample_num}/{total_samples}", (20, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
         cv2.putText(frame, status_text, (20, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
         cv2.putText(frame, "SPACE = record | ESC = skip", (20, 145), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200, 200, 200), 1)
@@ -348,7 +358,7 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         frame = cv2.addWeighted(overlay, 0.6, frame, 0.4, 0)
 
         cv2.putText(frame, f"RECORDING {total_captured}/{TOTAL_FRAMES}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
-        cv2.putText(frame, f"Sign: {sign_name}", (20, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+        cv2.putText(frame, f"Sign: {display_name}", (20, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 255), 2)
         status_color = (0, 255, 0) if valid_hands else (0, 0, 255)
         status_text = f"🟢 HAND ({len(valid_hands)})" if valid_hands else "🔴 NO HAND!"
         cv2.putText(frame, status_text, (20, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.65, status_color, 2)
@@ -383,6 +393,9 @@ def main():
     print(f"🎬 SIGNIFY CUSTOM CAPTURE — {MEMBER_NAME.upper()}")
     print("="*60)
     print("UI is handled inside the camera window.")
+    print(f"Sample counts: 10, 20, or 40")
+    print(f"Phrase input: type with SPACES (e.g. I NEED DOCTOR)")
+    print("="*60)
 
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -390,7 +403,6 @@ def main():
 
     try:
         while True:
-            # 1. Scan for unfinished signs & show Startup Menu
             unfinished = get_unfinished_signs()
             action, selected_sign = show_startup_menu(unfinished)
 
@@ -399,11 +411,10 @@ def main():
             elif action == "new":
                 sign_name = get_sign_name_ui()
                 if sign_name is None:
-                    continue # Go back to startup menu if ESC was pressed
+                    continue
             elif action == "resume":
                 sign_name = selected_sign
 
-            # 2. Setup Paths
             output_dir = f"custom_data/{MEMBER_NAME}/{sign_name}"
             os.makedirs(output_dir, exist_ok=True)
             X_path = f"{output_dir}/X.npy"
@@ -418,7 +429,6 @@ def main():
             start_from = 0
             skip_sign = False
 
-            # 3. Resume Logic
             if len(X_all) > 0 and not progress.get("completed", False):
                 choice = show_resume_menu(sign_name, len(X_all), total_samples)
                 if choice == "continue":
@@ -431,17 +441,14 @@ def main():
                 elif choice == "skip":
                     skip_sign = True
             else:
-                # If it's a brand new sign
                 total_samples = choose_sample_count(sign_name)
                 if total_samples is None: continue
 
             if skip_sign:
                 continue
 
-            # 4. Capture Loop
             while start_from < total_samples:
                 current_num = start_from + 1
-                
                 sample = capture_one_sample(cap, sign_name, current_num, total_samples)
                 if sample is None: break
 
@@ -451,12 +458,10 @@ def main():
                     X_all.append(sample)
                     start_from += 1
                     print(f"✅ {sign_name} Sample {current_num} saved.")
-                    
                     np.save(X_path, np.array(X_all, dtype=np.float32))
                     progress["total_samples"] = total_samples
                     progress["completed"] = (start_from >= total_samples)
                     with open(progress_path, "w") as f: json.dump(progress, f)
-
                 elif choice == "redo":
                     continue
                 elif choice == "skip":
