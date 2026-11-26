@@ -1,12 +1,20 @@
 """
-merge_custom_signs.py (COMPLETE — FSL-105 + Team + REST)
+merge_custom_signs.py (COMPLETE — FSL-105 + Team + Custom Signs)
 Merges:
-  1. FSL-105 base (105 classes)
-  2. All team data from team_data/<member>/ (fine-tune data)
-  3. All custom signs from custom_data/<member>/<SIGN>/ (e.g. REST)
+  1. FSL-105 base (105 classes, IDs 0-104)
+  2. All team data from team_data/<member>/ (fine-tune data, IDs 0-104)
+  3. All custom signs from custom_data/<member>/<SIGN>/ (REST + new phrases)
 
-Auto-assigns IDs starting from 105 to custom signs.
-Output: landmarks/merged/ (matches train_model_v5.py)
+ID assignment (deterministic, app-safe):
+  - IDs 0-104   → FSL-105 (fixed)
+  - ID  105     → REST      (ALWAYS pinned — never shifts)
+  - IDs 106+    → new custom phrases, alphabetical order
+
+Output: landmarks/merged/ (matches train_model_v5.py / train_model_v6.py)
+
+PATCH: REST is now pinned to ID 105. Adding new phrases NEVER renumbers
+       existing labels — so the app's labels.json only needs appending,
+       never full renumbering. No silent prediction errors on deploy.
 """
 import numpy as np
 import os
@@ -85,7 +93,7 @@ else:
         print(f"✅ {member}: {len(X_mem)} samples")
 
 # ============================================
-# 3. DISCOVER CUSTOM SIGNS (e.g. REST)
+# 3. DISCOVER CUSTOM SIGNS (REST + new phrases)
 # ============================================
 print("\n" + "=" * 60)
 print("📥 Loading Custom Signs")
@@ -104,13 +112,21 @@ if not unique_signs:
     print("⚠️  No custom signs found — training will be 105-class only")
     sign_to_id = {}
 else:
-    # Sort alphabetically so all members get the same ID mapping
+    # ── PATCH: REST pinned to ID 105 FOREVER ──
+    # Existing app labels.json has REST at index 105. If we sort alphabetically
+    # and add new phrases that sort before REST, REST would shift → app breaks.
+    # Fix: force REST first, everything else alphabetical after.
     unique_signs = sorted(list(unique_signs))
+    if "REST" in unique_signs:
+        unique_signs.remove("REST")
+        unique_signs = ["REST"] + unique_signs   # REST always first → always 105
+
     sign_to_id = {}
     next_id = 105
     for sign in unique_signs:
         sign_to_id[sign] = next_id
-        print(f"  ✅ Assigned {sign} → ID {next_id}")
+        tag = " (pinned)" if sign == "REST" else ""
+        print(f"  ✅ Assigned {sign} → ID {next_id}{tag}")
         next_id += 1
 
 # Load custom data by folder name
@@ -172,7 +188,7 @@ np.save(f"{OUTPUT_PATH}/X_test.npy", X_final_test)
 np.save(f"{OUTPUT_PATH}/y_test.npy", y_final_test)
 
 # ============================================
-# 5. GENERATE labels_v5.json FOR THE APP
+# 5. GENERATE labels FOR THE APP
 # ============================================
 print("\n" + "=" * 60)
 print("🏷️  Generating labels for Flutter app")
@@ -207,7 +223,8 @@ else:
     if len(master_labels) != 105:
         print(f"⚠️  Expected 105 FSL labels, got {len(master_labels)}")
 
-    # Append custom signs (REST, etc.)
+    # Append custom signs — ORDER MATTERS: must match sign_to_id assignment
+    # (unique_signs is already ["REST", <alphabetical others>])
     for sign in unique_signs:
         master_labels.append(sign)
 
@@ -216,7 +233,40 @@ else:
 
     print(f"✅ Saved master_labels.json ({len(master_labels)} labels)")
     print(f"   Last 5: {master_labels[-5:]}")
+    print(f"   REST at index: {master_labels.index('REST') if 'REST' in master_labels else 'NOT FOUND'}")
+
+# ============================================
+# 6. SAFETY CHECK — labels align with y classes
+# ============================================
+print("\n" + "=" * 60)
+print("🔍 SANITY CHECK")
+print("=" * 60)
+
+if master_labels is not None:
+    if len(master_labels) == expected_classes:
+        print(f"✅ labels length ({len(master_labels)}) == expected classes ({expected_classes})")
+    else:
+        print(f"❌ MISMATCH: labels has {len(master_labels)}, model expects {expected_classes}")
+
+    # Verify REST is where we think it is
+    if "REST" in master_labels:
+        rest_idx = master_labels.index("REST")
+        if rest_idx == 105:
+            print(f"✅ REST pinned at index 105 (app labels.json unchanged for REST)")
+        else:
+            print(f"⚠️  REST at index {rest_idx}, expected 105 — check merge logic")
+
+    # Print mapping summary for the new classes (105+)
+    print(f"\n📋 Custom class mapping (app must use this):")
+    for i, label in enumerate(master_labels[105:], start=105):
+        print(f"   {i}: {label}")
 
 print("\n" + "=" * 60)
-print("✅ DONE! Now run: python train/train_model_v5.py")
+print("✅ DONE! Now run: python train/train_model_v5.py (or v6)")
+print("=" * 60)
+print("\n⚠️  IMPORTANT: After retraining the sign model:")
+print("   1. Export TFLite (convert_v5_tflite.py)")
+print("   2. Copy master_labels.json → signify/assets/models/labels.json")
+print("   3. flutter build apk --release")
+print("   (REST stays at ID 105 — safe to append-only update labels.json)")
 print("=" * 60)
