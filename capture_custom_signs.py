@@ -323,23 +323,20 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         frame = cv2.flip(frame, 1)
         cv2.putText(frame, f"{i}...", (260, 250), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 6)
         cv2.imshow("Signify Custom Capture", frame)
-        time.sleep(1)       # 👈 Guarantees a 1-second wait
-        cv2.waitKey(1)
+        cv2.waitKey(1000)
 
     # ⭐⭐⭐ RECORDING LOOP — TIME-BASED ⭐⭐⭐
     captured = []  # list of (timestamp_seconds, landmarks_vec)
-    start_time = time.perf_counter()
+    start_time = time.time()
 
     fps_frames = 0
     fps_last_time = start_time
 
     while (time.time() - start_time) < RECORD_SECONDS:
         ret, frame = cap.read()
-        if not ret: 
-            time.sleep(0.01)
-            continue
+        if not ret: break
 
-        timestamp = time.perf_counter() - start_time  # 0.0 → 4.0
+        timestamp = time.time() - start_time  # 0.0 → 4.0
         frame = cv2.flip(frame, 1)
         h, w, _ = frame.shape
 
