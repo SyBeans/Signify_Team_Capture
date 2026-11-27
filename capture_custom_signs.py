@@ -12,6 +12,7 @@ import os
 import json
 import time
 import argparse
+import sys  # ⭐ NEW: for clean exit
 
 # ============================================
 # ARGUMENTS
@@ -323,20 +324,23 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         frame = cv2.flip(frame, 1)
         cv2.putText(frame, f"{i}...", (260, 250), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 6)
         cv2.imshow("Signify Custom Capture", frame)
-        cv2.waitKey(1000)
+        time.sleep(1)  # ⭐ FIX: Guaranteed 1-second delay
+        cv2.waitKey(1)
 
     # ⭐⭐⭐ RECORDING LOOP — TIME-BASED ⭐⭐⭐
     captured = []  # list of (timestamp_seconds, landmarks_vec)
-    start_time = time.time()
+    start_time = time.perf_counter()  # ⭐ FIX: Precise timer
 
     fps_frames = 0
     fps_last_time = start_time
 
-    while (time.time() - start_time) < RECORD_SECONDS:
+    while (time.perf_counter() - start_time) < RECORD_SECONDS:
         ret, frame = cap.read()
-        if not ret: break
+        if not ret:
+            time.sleep(0.01)  # ⭐ FIX: Skip bad frames instead of breaking
+            continue
 
-        timestamp = time.time() - start_time  # 0.0 → 4.0
+        timestamp = time.perf_counter() - start_time  # 0.0 → 4.0
         frame = cv2.flip(frame, 1)
         h, w, _ = frame.shape
 
@@ -367,7 +371,7 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
 
         # FPS display
         fps_frames += 1
-        now = time.time()
+        now = time.perf_counter()
         if now - fps_last_time >= 0.5:
             fps = fps_frames / (now - fps_last_time)
             fps_frames = 0
@@ -378,7 +382,7 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         cv2.rectangle(overlay, (0, 0), (w, 180), (0, 0, 0), -1)
         frame = cv2.addWeighted(overlay, 0.6, frame, 0.4, 0)
 
-        elapsed = time.time() - start_time
+        elapsed = time.perf_counter() - start_time
         progress = min(elapsed / RECORD_SECONDS, 1.0)
 
         cv2.putText(frame, f"RECORDING {elapsed:.1f}/{RECORD_SECONDS:.1f}s", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
@@ -527,9 +531,16 @@ def main():
 
     except KeyboardInterrupt:
         print("\n⚠️ Quitting...")
-
-    cap.release()
-    cv2.destroyAllWindows()
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+    finally:
+        # ⭐ NEW: Force close on Linux
+        cap.release()
+        cv2.destroyAllWindows()
+        cv2.waitKey(1)
+        cv2.waitKey(1)
+        print("✅ Camera released.")
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()

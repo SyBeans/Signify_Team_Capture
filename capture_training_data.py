@@ -25,6 +25,7 @@ import json
 import argparse
 from datetime import datetime
 import time
+import sys  # ⭐ ADDED: for clean exit
 
 # ============================================
 # ARGUMENTS
@@ -643,11 +644,17 @@ def run_add_mode(add_ids, add_count, X_all, y_all, progress):
 
     except KeyboardInterrupt:
         print("\n⚠️  Add mode interrupted — partial data saved")
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
     finally:
         save_partial_data(X_all, y_all)
         save_progress(progress)
         cap.release()
         cv2.destroyAllWindows()
+        cv2.waitKey(1)   # <-- Forces Linux to close the window
+        cv2.waitKey(1)
+        print("✅ Camera released.")
+        sys.exit(0)      # <-- Kills the Python process cleanly
 
 
 # ============================================
@@ -840,39 +847,46 @@ def main():
 
     except KeyboardInterrupt:
         print("\n⚠️  Saving and quitting...")
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+    finally:
+        save_progress(progress)
 
-    save_progress(progress)
+        if X_all:
+            X = np.array(X_all, dtype=np.float32)
+            y = np.array(y_all, dtype=np.int32)
+            np.save(f"{OUTPUT_DIR}/X.npy", X)
+            np.save(f"{OUTPUT_DIR}/y.npy", y)
 
-    if X_all:
-        X = np.array(X_all, dtype=np.float32)
-        y = np.array(y_all, dtype=np.int32)
-        np.save(f"{OUTPUT_DIR}/X.npy", X)
-        np.save(f"{OUTPUT_DIR}/y.npy", y)
+            labels_captured = []
+            for sid_str, v in progress["signs"].items():
+                if v.get("samples", 0) > 0:
+                    labels_captured.append({"id": int(sid_str), "name": v["name"]})
 
-        labels_captured = []
-        for sid_str, v in progress["signs"].items():
-            if v.get("samples", 0) > 0:
-                labels_captured.append({"id": int(sid_str), "name": v["name"]})
+            with open(f"{OUTPUT_DIR}/labels.json", "w") as f:
+                json.dump(labels_captured, f, indent=2)
 
-        with open(f"{OUTPUT_DIR}/labels.json", "w") as f:
-            json.dump(labels_captured, f, indent=2)
+            completed_count = sum(1 for v in progress["signs"].values() if v.get("completed"))
+            with open(f"{OUTPUT_DIR}/metadata.json", "w") as f:
+                json.dump({
+                    "member": MEMBER_NAME,
+                    "date": datetime.now().isoformat(),
+                    "signs_completed": completed_count,
+                    "signs_in_progress": len(labels_captured) - completed_count,
+                    "total_samples": len(X),
+                    "feature_shape": list(X.shape),
+                }, f, indent=2)
 
-        completed_count = sum(1 for v in progress["signs"].values() if v.get("completed"))
-        with open(f"{OUTPUT_DIR}/metadata.json", "w") as f:
-            json.dump({
-                "member": MEMBER_NAME,
-                "date": datetime.now().isoformat(),
-                "signs_completed": completed_count,
-                "signs_in_progress": len(labels_captured) - completed_count,
-                "total_samples": len(X),
-                "feature_shape": list(X.shape),
-            }, f, indent=2)
+            print(f"\n✅ Saved {len(X)} samples")
+            print(f"✅ Signs tracked: {len(labels_captured)}")
 
-        print(f"\n✅ Saved {len(X)} samples")
-        print(f"✅ Signs tracked: {len(labels_captured)}")
-
-    cap.release()
-    cv2.destroyAllWindows()
+        # ⭐ FORCE CLOSE WINDOWS ON LINUX
+        cap.release()
+        cv2.destroyAllWindows()
+        cv2.waitKey(1)   # <-- Forces Linux to close the window
+        cv2.waitKey(1)
+        print("✅ Camera released.")
+        sys.exit(0)      # <-- Kills the Python process cleanly
 
 
 if __name__ == "__main__":
