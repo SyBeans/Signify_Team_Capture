@@ -1,6 +1,12 @@
 """
-capture_training_data.py (FINAL + Selective Add + Cross-Member Help)
+capture_training_data.py (FINAL + Selective Add + Cross-Member Help + FAST)
 Per-sample confirm + sample count menu + FULL resume support.
+
+NEW in this version:
+  ⭐ Time-based recording (4.0s wall clock) — FPS-independent
+  ⭐ MediaPipe downsampled to 320x240 — 4x faster, same landmarks
+  ⭐ Timestamp-based resampling — consistent velocity features
+  ⭐ Auto-retry on too-slow captures (MIN_FRAMES_OK = 20)
 
 CLI modes:
   (default)              → capture all incomplete signs
@@ -8,20 +14,8 @@ CLI modes:
   --add 3,7,11           → APPEND more samples to specific sign IDs
   --add 3,7,11 --add-count 10   → append exactly N per sign (skips menu)
   --force                → allow --add on sign IDs outside your assignment
-                           (data still saved to YOUR folder — audit trail intact)
   --redo 42              → WIPE + recapture specific sign ID
   --fresh                → wipe ALL data and start over
-
-Cross-member sign help (Option A):
-  Jonathan wants to help Vincent's "THANK YOU" (sign 7):
-    python capture_training_data.py --name jonathan --add 7 --add-count 10 --force
-  → Jonathan's samples go to team_data/jonathan/, with y=7 (correct label)
-  → Merge combines by label → class 7 gains Jonathan as a new signer
-  → Audit trail intact: folder = who actually captured, y = which sign
-
-FIXED: --redo now actually wipes (previous version silently appended).
-NEW:   --add mode for selective improvement of specific signs.
-NEW:   --force bypasses assignment check (own folder, correct label).
 """
 import cv2
 import numpy as np
@@ -31,6 +25,7 @@ import json
 import argparse
 from datetime import datetime
 import time
+import sys  # ⭐ ADDED: for clean exit
 
 # ============================================
 # ARGUMENTS
@@ -62,9 +57,15 @@ with open("team_assignments.json", "r") as f:
 
 settings = cfg["capture_settings"]
 FPS = settings["fps"]
-TOTAL_FRAMES = settings["total_frames_captured"]
-MODEL_FRAMES = settings["model_frames"]
+TOTAL_FRAMES = settings["total_frames_captured"]    # legacy — kept for compat
+MODEL_FRAMES = settings["model_frames"]             # 30 — resample target
 MAX_HANDS = settings["max_hands"]
+
+# ⭐ NEW: time-based recording
+RECORD_SECONDS = float(settings.get("duration_seconds", 4.0))
+MIN_FRAMES_OK = 20   # retry if fewer frames captured
+PROCESS_WIDTH = 320  # ⭐ downsampled MediaPipe input
+PROCESS_HEIGHT = 240
 
 member_data = cfg["phase_2_fsl_split"].get(MEMBER_NAME)
 if not member_data:
@@ -78,7 +79,6 @@ SIGN_LIST = list(zip(member_data["signs"], member_data["sign_names"]))
 # FSL-105 FULL LABEL TABLE (for --force)
 # ============================================
 def load_full_fsl_labels():
-    """Load complete 0-104 label list for --force lookups."""
     candidates = [
         "../Signify_Model/landmarks/hand/labels.json",
         "../Signify_Model/landmarks/merged/master_labels.json",
@@ -89,8 +89,7 @@ def load_full_fsl_labels():
             with open(p) as f:
                 labels = json.load(f)
             if len(labels) >= 105:
-                return labels[:105]   # only FSL-105 portion
-    # Fallback: build reverse map from all members' assignments
+                return labels[:105]
     fallback = {}
     for m in cfg["phase_2_fsl_split"].values():
         for sid, name in zip(m["signs"], m["sign_names"]):
@@ -153,7 +152,8 @@ hands = mp_hands.Hands(
     static_image_mode=False,
     max_num_hands=MAX_HANDS,
     min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
+    min_tracking_confidence=0.5,
+    model_complexity=1   # keep Full model (accuracy). Set to 0 for Lite if too slow
 )
 
 
@@ -192,7 +192,7 @@ def show_sign_status(progress):
 
 
 # ============================================
-# SAMPLE COUNT MENU (15/40) — used by normal/redo modes
+# SAMPLE COUNT MENU (15/40)
 # ============================================
 def choose_sample_count(sign_name):
     h, w = 480, 640
@@ -223,7 +223,7 @@ def choose_sample_count(sign_name):
 
 
 # ============================================
-# ADD-COUNT MENU — used by --add mode
+# ADD-COUNT MENU
 # ============================================
 def choose_add_count(sign_name, current_count):
     h, w = 480, 640
@@ -299,9 +299,31 @@ def show_sample_menu(sign_name, sample_num, total_samples):
 
 
 # ============================================
-# CAPTURE ONE SAMPLE
+# HELPER — extract landmarks vector from valid_hands
+# ============================================
+def extract_landmarks_vec(valid_hands):
+    hand1 = []
+    for lm in valid_hands[0].landmark:
+        hand1.extend([lm.x, lm.y, lm.z])
+    if len(valid_hands) >= 2:
+        hand2 = []
+        for lm in valid_hands[1].landmark:
+            hand2.extend([lm.x, lm.y, lm.z])
+    else:
+        hand2 = [0.0] * HAND_FEATURES
+    return hand1 + hand2
+
+
+# ============================================
+# ⭐ CAPTURE ONE SAMPLE — TIME-BASED + FAST
 # ============================================
 def capture_one_sample(cap, sign_name, sample_num, total_samples):
+    """
+    Returns:
+      - ndarray (30, 252) if successful
+      - None if user cancelled (ESC)
+      - "RETRY" if too slow (<MIN_FRAMES_OK frames in RECORD_SECONDS)
+    """
     fps = 0.0
     fps_frames = 0
     fps_last_time = time.time()
@@ -313,7 +335,10 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
             return None
         frame = cv2.flip(frame, 1)
         h, w, _ = frame.shape
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # ⭐ Downsample for MediaPipe
+        small = cv2.resize(frame, (PROCESS_WIDTH, PROCESS_HEIGHT))
+        frame_rgb = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
         preview = hands.process(frame_rgb)
 
         valid_hands = []
@@ -364,7 +389,7 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
         cv2.putText(frame, status_text, (20, 110),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
-        cv2.putText(frame, "SPACE = record | ESC = skip", (20, 145),
+        cv2.putText(frame, f"SPACE = record ({RECORD_SECONDS:.0f}s) | ESC = skip", (20, 145),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200, 200, 200), 1)
         cv2.putText(frame, f"FPS: {fps:.1f}", (w - 120, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
@@ -376,8 +401,10 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         if key == 27:
             return None
 
-    # Countdown
+    # --- COUNTDOWN (drain buffer) ---
     for i in range(3, 0, -1):
+        for _ in range(3):  # drain stale frames
+            cap.read()
         ret, frame = cap.read()
         if not ret:
             return None
@@ -387,19 +414,24 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         cv2.imshow("Signify Capture", frame)
         cv2.waitKey(1000)
 
-    # --- RECORDING LOOP ---
-    frames_with_hands = []
-    total_captured = 0
+    # --- ⭐ RECORDING LOOP — TIME-BASED ---
+    captured = []  # list of (timestamp_s, landmarks_vec)
+    start_time = time.time()
     fps_frames = 0
-    fps_last_time = time.time()
+    fps_last_time = start_time
 
-    while total_captured < TOTAL_FRAMES:
+    while (time.time() - start_time) < RECORD_SECONDS:
         ret, frame = cap.read()
         if not ret:
             break
+
+        timestamp = time.time() - start_time
         frame = cv2.flip(frame, 1)
         h, w, _ = frame.shape
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # ⭐ Downsample for MediaPipe
+        small = cv2.resize(frame, (PROCESS_WIDTH, PROCESS_HEIGHT))
+        frame_rgb = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
         results = hands.process(frame_rgb)
 
         valid_hands = []
@@ -425,19 +457,8 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
                         cv2.circle(frame, (cx, cy), 8, (0, 255, 255), -1)
                     else:
                         cv2.circle(frame, (cx, cy), 4, (255, 0, 255), -1)
+            captured.append((timestamp, extract_landmarks_vec(valid_hands)))
 
-            hand1 = []
-            for lm in valid_hands[0].landmark:
-                hand1.extend([lm.x, lm.y, lm.z])
-            if len(valid_hands) >= 2:
-                hand2 = []
-                for lm in valid_hands[1].landmark:
-                    hand2.extend([lm.x, lm.y, lm.z])
-            else:
-                hand2 = [0.0] * HAND_FEATURES
-            frames_with_hands.append(hand1 + hand2)
-
-        total_captured += 1
         fps_frames += 1
         now = time.time()
         if now - fps_last_time >= 0.5:
@@ -449,7 +470,10 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         cv2.rectangle(overlay, (0, 0), (w, 180), (0, 0, 0), -1)
         frame = cv2.addWeighted(overlay, 0.6, frame, 0.4, 0)
 
-        cv2.putText(frame, f"RECORDING {total_captured}/{TOTAL_FRAMES}",
+        elapsed = time.time() - start_time
+        progress = min(elapsed / RECORD_SECONDS, 1.0)
+
+        cv2.putText(frame, f"RECORDING {elapsed:.1f}/{RECORD_SECONDS:.1f}s",
                     (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
         cv2.putText(frame, f"Sign: {sign_name}", (20, 75),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
@@ -463,12 +487,11 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
 
         cv2.putText(frame, status_text, (20, 110),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.65, status_color, 2)
-        cv2.putText(frame, f"Hands: {len(frames_with_hands)}", (20, 145),
+        cv2.putText(frame, f"Frames captured: {len(captured)}", (20, 145),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
         cv2.putText(frame, f"FPS: {fps:.1f}", (w - 120, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
-        progress = total_captured / TOTAL_FRAMES
         bar_w = int(progress * (w - 40))
         cv2.rectangle(frame, (20, 440), (20 + bar_w, 470), (0, 255, 0), -1)
         cv2.rectangle(frame, (20, 440), (w - 20, 470), (255, 255, 255), 2)
@@ -476,15 +499,31 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
         cv2.imshow("Signify Capture", frame)
         cv2.waitKey(1)
 
-    if len(frames_with_hands) < MODEL_FRAMES:
-        while len(frames_with_hands) < MODEL_FRAMES:
-            if frames_with_hands:
-                frames_with_hands.append(frames_with_hands[-1])
-            else:
-                frames_with_hands.append([0.0] * (HAND_FEATURES * 2))
+    # --- ⭐ CHECK: enough frames captured? ---
+    if len(captured) < MIN_FRAMES_OK:
+        print(f"   ⚠️  Only {len(captured)} frames captured in {RECORD_SECONDS}s — too slow")
+        ret, frame = cap.read()
+        if ret:
+            frame = cv2.flip(frame, 1)
+            overlay = frame.copy()
+            cv2.rectangle(overlay, (0, 200), (w, 280), (0, 0, 150), -1)
+            frame = cv2.addWeighted(overlay, 0.7, frame, 0.3, 0)
+            cv2.putText(frame, f"TOO SLOW: {len(captured)} frames",
+                        (40, 240), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 3)
+            cv2.putText(frame, "Please redo this sample",
+                        (40, 270), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            cv2.imshow("Signify Capture", frame)
+            cv2.waitKey(1500)
+        return "RETRY"
 
-    indices = np.linspace(0, len(frames_with_hands) - 1, MODEL_FRAMES, dtype=int)
-    selected = [frames_with_hands[i] for i in indices]
+    # --- ⭐ TIME-BASED RESAMPLE to MODEL_FRAMES ---
+    captured.sort(key=lambda x: x[0])
+    target_times = np.linspace(0.0, RECORD_SECONDS, MODEL_FRAMES)
+
+    selected = []
+    for t in target_times:
+        nearest_idx = min(range(len(captured)), key=lambda i: abs(captured[i][0] - t))
+        selected.append(captured[nearest_idx][1])
 
     positions = np.array(selected, dtype=np.float32)
     velocities = np.zeros_like(positions)
@@ -493,25 +532,15 @@ def capture_one_sample(cap, sign_name, sample_num, total_samples):
 
 
 # ============================================
-# ADD MODE — append more samples to specific signs
+# ADD MODE
 # ============================================
 def resolve_sign_id(sid):
-    """Return (sid, name) tuple or (None, None) if unresolvable.
-
-    Resolution order:
-      1. Own assignment (always allowed)
-      2. FSL-105 master list (only if --force)
-    """
-    # 1. Try own assignment
     matching = [(s, n) for s, n in SIGN_LIST if s == sid]
     if matching:
         return matching[0]
-
-    # 2. Try FSL-105 master list with --force
     if args.force and FSL_105_LABELS is not None:
         if 0 <= sid < len(FSL_105_LABELS):
             return (sid, FSL_105_LABELS[sid])
-
     return (None, None)
 
 
@@ -521,7 +550,6 @@ def run_add_mode(add_ids, add_count, X_all, y_all, progress):
 
     for sid in add_ids:
         resolved_sid, resolved_name = resolve_sign_id(sid)
-
         if resolved_sid is None:
             if not args.force:
                 print(f"⚠️  Sign ID {sid} not in {MEMBER_NAME}'s assignment — skipping "
@@ -529,10 +557,7 @@ def run_add_mode(add_ids, add_count, X_all, y_all, progress):
             else:
                 print(f"⚠️  Sign ID {sid} out of range for FSL-105 (0–104) — skipping")
             continue
-
         signs_to_process.append((resolved_sid, resolved_name))
-
-        # Track which ones required --force
         in_own = any(s == sid for s, _ in SIGN_LIST)
         if not in_own:
             forced_signs.append(sid)
@@ -546,15 +571,12 @@ def run_add_mode(add_ids, add_count, X_all, y_all, progress):
     print(f"{'=' * 60}")
     for sid, name in signs_to_process:
         entry = progress["signs"].get(str(sid), {})
-        tag = ""
-        if sid in forced_signs:
-            tag = "  🔓 (--force: not in your assignment)"
+        tag = "  🔓 (--force: not in your assignment)" if sid in forced_signs else ""
         print(f"   {sid:>3}: {name:<22} (current: {entry.get('samples', 0)}){tag}")
 
     if forced_signs:
         print(f"\n⚠️  {len(forced_signs)} sign(s) outside your assignment.")
         print(f"   Data WILL be saved to team_data/{MEMBER_NAME}/ with correct labels.")
-        print(f"   Merge will combine by label — audit trail intact.")
 
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -585,8 +607,13 @@ def run_add_mode(add_ids, add_count, X_all, y_all, progress):
             while samples_captured < additional:
                 current_num = start_from + samples_captured + 1
                 sample = capture_one_sample(cap, sign_name, current_num, total_samples)
+
+                # ⭐ Handle RETRY / cancel
+                if sample == "RETRY":
+                    print(f"   ⚠️  Sample {current_num} too slow — retrying same sample")
+                    continue
                 if sample is None:
-                    print("   ⚠️  Capture cancelled")
+                    print(f"   ⏭️  Sample {current_num} cancelled")
                     break
 
                 choice = show_sample_menu(sign_name, current_num, total_samples)
@@ -617,11 +644,17 @@ def run_add_mode(add_ids, add_count, X_all, y_all, progress):
 
     except KeyboardInterrupt:
         print("\n⚠️  Add mode interrupted — partial data saved")
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
     finally:
         save_partial_data(X_all, y_all)
         save_progress(progress)
         cap.release()
         cv2.destroyAllWindows()
+        cv2.waitKey(1)   # <-- Forces Linux to close the window
+        cv2.waitKey(1)
+        print("✅ Camera released.")
+        sys.exit(0)      # <-- Kills the Python process cleanly
 
 
 # ============================================
@@ -632,8 +665,10 @@ def main():
     print(f"🎬 SIGNIFY CAPTURE — {MEMBER_NAME.upper()}")
     print(f"   Total signs: {len(SIGN_LIST)}")
     print(f"   Output: {OUTPUT_DIR}/")
+    print(f"   Recording: {RECORD_SECONDS:.1f}s wall time (FPS-independent)")
+    print(f"   MediaPipe input: {PROCESS_WIDTH}x{PROCESS_HEIGHT} (fast mode)")
     if args.force:
-        print(f"   🔓 --force enabled: can add to signs outside your assignment")
+        print(f"   🔓 --force enabled")
     print("=" * 60)
 
     if args.fresh:
@@ -646,28 +681,26 @@ def main():
     if X_all:
         print(f"📂 Found existing data: {len(X_all)} samples")
 
-    # ============================================
-    # MODE 1 — LIST (no camera)
-    # ============================================
+    # MODE 1 — LIST
     if args.list:
         show_sign_status(progress)
         return
 
-    # ============================================
-    # MODE 2 — ADD (append to specific signs, with --force support)
-    # ============================================
+    # MODE 2 — ADD
     if args.add is not None:
         add_ids = [int(x.strip()) for x in args.add.split(",")]
         run_add_mode(add_ids, args.add_count, X_all, y_all, progress)
         return
 
-    # ============================================
     # MODE 3/4 — REDO or NORMAL
-    # ============================================
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     cap.set(cv2.CAP_PROP_FPS, FPS)
+
+    # Check actual FPS
+    actual_fps = cap.get(cv2.CAP_PROP_FPS)
+    print(f"📷 Camera reports {actual_fps:.1f} FPS")
 
     try:
         if args.redo is not None:
@@ -700,7 +733,6 @@ def main():
 
             entry = progress["signs"].get(str(sign_id), {})
             in_progress = entry.get("samples", 0) > 0 and not entry.get("completed")
-
             skip_this_sign = False
 
             if in_progress:
@@ -769,8 +801,13 @@ def main():
             while samples_captured < additional:
                 current_num = start_from + samples_captured + 1
                 sample = capture_one_sample(cap, sign_name, current_num, total_samples)
+
+                # ⭐ Handle RETRY / cancel
+                if sample == "RETRY":
+                    print(f"   ⚠️  Sample {current_num} too slow — retrying same sample")
+                    continue
                 if sample is None:
-                    print("   ⚠️  Capture cancelled")
+                    print(f"   ⏭️  Sample {current_num} cancelled")
                     break
 
                 choice = show_sample_menu(sign_name, current_num, total_samples)
@@ -810,39 +847,46 @@ def main():
 
     except KeyboardInterrupt:
         print("\n⚠️  Saving and quitting...")
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+    finally:
+        save_progress(progress)
 
-    save_progress(progress)
+        if X_all:
+            X = np.array(X_all, dtype=np.float32)
+            y = np.array(y_all, dtype=np.int32)
+            np.save(f"{OUTPUT_DIR}/X.npy", X)
+            np.save(f"{OUTPUT_DIR}/y.npy", y)
 
-    if X_all:
-        X = np.array(X_all, dtype=np.float32)
-        y = np.array(y_all, dtype=np.int32)
-        np.save(f"{OUTPUT_DIR}/X.npy", X)
-        np.save(f"{OUTPUT_DIR}/y.npy", y)
+            labels_captured = []
+            for sid_str, v in progress["signs"].items():
+                if v.get("samples", 0) > 0:
+                    labels_captured.append({"id": int(sid_str), "name": v["name"]})
 
-        labels_captured = []
-        for sid_str, v in progress["signs"].items():
-            if v.get("samples", 0) > 0:
-                labels_captured.append({"id": int(sid_str), "name": v["name"]})
+            with open(f"{OUTPUT_DIR}/labels.json", "w") as f:
+                json.dump(labels_captured, f, indent=2)
 
-        with open(f"{OUTPUT_DIR}/labels.json", "w") as f:
-            json.dump(labels_captured, f, indent=2)
+            completed_count = sum(1 for v in progress["signs"].values() if v.get("completed"))
+            with open(f"{OUTPUT_DIR}/metadata.json", "w") as f:
+                json.dump({
+                    "member": MEMBER_NAME,
+                    "date": datetime.now().isoformat(),
+                    "signs_completed": completed_count,
+                    "signs_in_progress": len(labels_captured) - completed_count,
+                    "total_samples": len(X),
+                    "feature_shape": list(X.shape),
+                }, f, indent=2)
 
-        completed_count = sum(1 for v in progress["signs"].values() if v.get("completed"))
-        with open(f"{OUTPUT_DIR}/metadata.json", "w") as f:
-            json.dump({
-                "member": MEMBER_NAME,
-                "date": datetime.now().isoformat(),
-                "signs_completed": completed_count,
-                "signs_in_progress": len(labels_captured) - completed_count,
-                "total_samples": len(X),
-                "feature_shape": list(X.shape),
-            }, f, indent=2)
+            print(f"\n✅ Saved {len(X)} samples")
+            print(f"✅ Signs tracked: {len(labels_captured)}")
 
-        print(f"\n✅ Saved {len(X)} samples")
-        print(f"✅ Signs tracked: {len(labels_captured)}")
-
-    cap.release()
-    cv2.destroyAllWindows()
+        # ⭐ FORCE CLOSE WINDOWS ON LINUX
+        cap.release()
+        cv2.destroyAllWindows()
+        cv2.waitKey(1)   # <-- Forces Linux to close the window
+        cv2.waitKey(1)
+        print("✅ Camera released.")
+        sys.exit(0)      # <-- Kills the Python process cleanly
 
 
 if __name__ == "__main__":
